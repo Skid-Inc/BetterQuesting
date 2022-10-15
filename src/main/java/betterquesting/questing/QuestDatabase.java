@@ -6,6 +6,7 @@ import betterquesting.api2.storage.DBEntry;
 import betterquesting.api2.storage.SimpleDatabase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import org.apache.commons.lang3.ArrayUtils;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -44,21 +45,8 @@ public final class QuestDatabase extends SimpleDatabase<IQuest> implements IQues
     private void removeReq(IQuest quest, int id)
     {
         int[] orig = quest.getRequirements();
-        if(orig.length <= 0) return;
-        boolean hasRemoved = false;
-        int[] rem = new int[orig.length - 1];
-        for(int i = 0; i < orig.length; i++)
-        {
-            if(!hasRemoved && orig[i] == id)
-            {
-                hasRemoved = true;
-                continue;
-            } else if(!hasRemoved && i >= rem.length) break;
-            
-            rem[!hasRemoved ? i : (i - 1)] = orig[i];
-        }
-        
-        if(hasRemoved) quest.setRequirements(rem);
+        if(orig.length <= 0 || id < 0 || id >= orig.length) return;
+		quest.setRequirements(ArrayUtils.removeElement(orig, id));
     }
 	
 	@Override
