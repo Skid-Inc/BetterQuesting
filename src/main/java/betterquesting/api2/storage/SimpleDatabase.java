@@ -1,119 +1,64 @@
 package betterquesting.api2.storage;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.*;
 
 public abstract class SimpleDatabase<T> implements IDatabase<T>
 {
-    /**
-     * If the cache size would somehow exceed 24MB (on 64bit machines) we stop.
-     */
-    public static int CACHE_MAX_SIZE = 24 * 1024 * 1024 / 8;
-    /**
-     * If {@code mapDB.size < SPARSE_RATIO * (mapDB.lastKey() - mapDB.firstKey())} the database will be considered
-     * sparse and an cache array won't be built to save memory.
-     * <p>
-     * Under this sparsity a 10k element database will roughly result in a 0.5MB cache which is more than enough reasonable.
-     */
-    public static double SPARSE_RATIO = 0.15d;
+    protected final HashMap<UUID, T> mapDB = new HashMap<>();
 
-    final TreeMap<Integer, T> mapDB = new TreeMap<>();
-
-    private final BitSet idMap = new BitSet();
-    private LookupLogicType type = null;
-    private LookupLogic<T> logic = null;
-
-    private LookupLogic<T> getLookupLogic()
-    {
-        if (type != null) return logic;
-        LookupLogicType newType = LookupLogicType.determine(this);
-        type = newType;
-        logic = newType.get(this);
-        return logic;
-    }
-
-    private void updateLookupLogic()
-    {
-        if(type == null) return;
-        LookupLogicType newType = LookupLogicType.determine(this);
-        if(newType != type)
-        {
-            type = null;
-            logic = null;
-        }
-        else
-        {
-            logic.onDataChange();
-        }
+    @Nonnull
+    @Override
+    public DBEntry<T> add(@Nonnull T value) {
+        return null;
     }
 
     @Override
-    public synchronized int nextID()
+    @Nonnull
+    public DBEntry<T> add(@Nonnull UUID uuid, @Nonnull T value)
     {
-        return idMap.nextClearBit(0);
-    }
-
-    @Override
-    public synchronized DBEntry<T> add(int id, T value)
-    {
-        if(value == null)
+        DBEntry<T> entry = new DBEntry<>(uuid, value);
+        if(mapDB.putIfAbsent(uuid, value) == null)
         {
-            throw new NullPointerException("Value cannot be null");
-        } else if(id < 0)
-        {
-            throw new IllegalArgumentException("ID cannot be negative");
+            return entry;
         } else
         {
-            if(mapDB.putIfAbsent(id, value) == null)
-            {
-                idMap.set(id);
-                updateLookupLogic();
-                return new DBEntry<>(id, value);
-            } else
-            {
-                throw new IllegalArgumentException("ID or value is already contained within database");
-            }
+            throw new IllegalArgumentException("ID or value is already contained within database");
         }
     }
 
     @Override
-    public synchronized boolean removeID(int key)
+    public synchronized boolean removeUUID(@Nullable UUID key)
     {
-        if(key < 0) return false;
-        
-        if(mapDB.remove(key) != null)
+        if (key == null) {return false;}
+        return mapDB.remove(key) != null;
+    }
+    
+    @Override
+    public synchronized boolean removeValue(@Nonnull T value)
+    {
+        return removeUUID(findUUID(value));
+    }
+    
+    @Override
+    @Nullable
+    public synchronized UUID findUUID(@Nullable T value)
+    {
+        if (value == null) {return null;}
+        for(Map.Entry<UUID, T> entry : mapDB.entrySet())
         {
-            idMap.clear(key);
-            updateLookupLogic();
-            return true;
+            if(entry.getValue() == value) return entry.getKey();
         }
-        
-        return false;
+        return null;
     }
     
     @Override
-    public synchronized boolean removeValue(T value)
+    @Nullable
+    public synchronized T getValue(@Nullable UUID uuid)
     {
-        return value != null && removeID(getID(value));
-    }
-    
-    @Override
-    public synchronized int getID(T value)
-    {
-        if(value == null) return -1;
-        
-        for(DBEntry<T> entry : getEntries())
-        {
-            if(entry.getValue() == value) return entry.getID();
-        }
-        
-        return -1;
-    }
-    
-    @Override
-    public synchronized T getValue(int id)
-    {
-        if(id < 0 || mapDB.size() <= 0) return null;
-        return mapDB.get(id);
+        if(uuid == null) return null;
+        return mapDB.get(uuid);
     }
     
     @Override
@@ -126,25 +71,11 @@ public abstract class SimpleDatabase<T> implements IDatabase<T>
     public synchronized void reset()
     {
         mapDB.clear();
-        idMap.clear();
-        type = null;
-        logic = null;
     }
 
     @Override
-    public synchronized List<DBEntry<T>> getEntries()
+    public synchronized Set<Map.Entry<UUID, T>> getEntries()
     {
-        return mapDB.isEmpty() ? Collections.emptyList() : getLookupLogic().getRefCache();
-    }
-
-    /**
-     * First try use array cache.
-     * If memory usage would be too high try use sort merge join if keys is large.
-     * Otherwise look up each key separately via {@link TreeMap#get(Object)}.
-     */
-    @Override
-    public synchronized List<DBEntry<T>> bulkLookup(int... keys)
-    {
-        return mapDB.isEmpty() || keys.length == 0 ? Collections.emptyList() : getLookupLogic().bulkLookup(keys);
+        return Collections.unmodifiableSet(mapDB.entrySet());
     }
 }

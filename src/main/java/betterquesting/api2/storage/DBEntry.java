@@ -1,54 +1,46 @@
 package betterquesting.api2.storage;
 
 import javax.annotation.Nonnull;
+import java.util.Objects;
+import java.util.UUID;
 
-public final class DBEntry<T> implements Comparable<DBEntry<T>>
-{
-    private final int id;
+public final class DBEntry<T> implements Comparable<DBEntry<T>> {
+    private final UUID uuid;
     @Nonnull
     private final T obj;
-    
-    public DBEntry(int id, T obj)
-    {
-        if(id < 0)
-        {
-            throw new IllegalArgumentException("Entry ID cannot be negative");
-        } else if(obj == null)
-        {
+
+    public DBEntry(@Nonnull UUID uuid, @Nonnull T obj) {
+        if (uuid == null) {
+            throw new IllegalArgumentException("Entry UUID cannot be negative");
+        } else if (obj == null) {
             throw new NullPointerException("Entry value cannot be null");
         }
-        
-        this.id = id;
+
+        this.uuid = uuid;
         this.obj = obj;
     }
-    
-    public final int getID()
-    {
-        return this.id;
-    }
-    
+
     @Nonnull
-    public final T getValue()
-    {
-        return obj;
+    public UUID getUUID() {
+        return this.uuid;
     }
-    
-    @Override
-    public int compareTo(DBEntry<T> o)
-    {
-        return Integer.compare(id, o.id);
+
+    @Nonnull
+    public T getValue() {
+        return this.obj;
     }
-    
+
     @Override
-    public boolean equals(Object obj)
-    {
-        if(!(obj instanceof DBEntry))
-        {
+    public int compareTo(DBEntry<T> o) {
+        return this.uuid.compareTo(o.uuid);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (!(other instanceof DBEntry)) {
             return false;
         }
-        
-        DBEntry entry = (DBEntry)obj;
-        
-        return this.getID() == entry.getID() && this.getValue().equals(entry.getValue());
+        DBEntry<?> entry = (DBEntry<?>) other;
+        return this.uuid.equals(entry.uuid) && Objects.equals(this.obj, entry.obj);
     }
 }
