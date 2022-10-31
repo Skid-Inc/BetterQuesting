@@ -11,6 +11,7 @@ import betterquesting.client.gui2.editors.designer.PanelToolController;
 import betterquesting.network.handlers.NetQuestEdit;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -204,22 +205,11 @@ public class ToolboxToolLink implements IToolboxTool
     
     private boolean removeReq(IQuest quest, int id)
     {
-        int[] orig = quest.getRequirements();
+        final int[] orig = quest.getRequirements();
         if(orig.length <= 0) return false;
-        boolean hasRemoved = false;
-        int[] rem = new int[orig.length - 1];
-        for(int i = 0; i < orig.length; i++)
-        {
-            if(!hasRemoved && orig[i] == id)
-            {
-                hasRemoved = true;
-                continue;
-            } else if(!hasRemoved && i >= rem.length) break;
-            
-            rem[!hasRemoved ? i : (i - 1)] = orig[i];
-        }
-        
-        if(hasRemoved) quest.setRequirements(rem);
+        final int[] rem = ArrayUtils.removeElement(orig, id);
+        final boolean hasRemoved = rem.length != orig.length;
+        if (hasRemoved) quest.setRequirements(rem);
         return hasRemoved;
     }
     

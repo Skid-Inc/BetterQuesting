@@ -35,6 +35,7 @@ import betterquesting.questing.QuestDatabase;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import org.apache.commons.lang3.ArrayUtils;
 import org.lwjgl.input.Keyboard;
 
 import java.util.Arrays;
@@ -245,22 +246,10 @@ public class GuiPrerequisiteEditor extends GuiScreenCanvas implements IPEventLis
     
     private void removeReq(IQuest quest, int id)
     {
-        int[] orig = quest.getRequirements();
+        final int[] orig = quest.getRequirements();
         if(orig.length <= 0) return;
-        boolean hasRemoved = false;
-        int[] rem = new int[orig.length - 1];
-        for(int i = 0; i < orig.length; i++)
-        {
-            if(!hasRemoved && orig[i] == id)
-            {
-                hasRemoved = true;
-                continue;
-            } else if(!hasRemoved && i >= rem.length) break;
-            
-            rem[!hasRemoved ? i : (i - 1)] = orig[i];
-        }
-        
-        if(hasRemoved) quest.setRequirements(rem);
+        final int[] rem = ArrayUtils.removeElement(orig, id);
+        if (rem.length != orig.length) quest.setRequirements(rem);
     }
     
     private void addReq(IQuest quest, int id)
