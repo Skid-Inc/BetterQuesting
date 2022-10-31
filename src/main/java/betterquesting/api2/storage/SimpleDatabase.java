@@ -10,8 +10,12 @@ public abstract class SimpleDatabase<T> implements IDatabase<T>
 
     @Nonnull
     @Override
-    public DBEntry<T> add(@Nonnull T value) {
-        return null;
+    public UUID generateUUID() {
+        UUID id;
+        do {
+            id = UUID.randomUUID();
+        } while (mapDB.containsKey(id));
+        return id;
     }
 
     @Override

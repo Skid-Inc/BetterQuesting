@@ -10,10 +10,18 @@ import java.util.UUID;
 public interface IDatabase<T>
 {
     /**
+     * Genrates a fresh, unused UUID
+     */
+    @Nonnull
+    UUID generateUUID();
+
+    /**
      * Adds a new entry with a fresh UUID into the database
      */
     @Nonnull
-    DBEntry<T> add(@Nonnull T value);
+    default DBEntry<T> add(@Nonnull T value) {
+        return add(generateUUID(), value);
+    }
     @Nonnull
     DBEntry<T> add(@Nonnull UUID uuid, @Nonnull T value);
 
