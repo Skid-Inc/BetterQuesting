@@ -40,7 +40,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 
 public class QuestInstance implements IQuest
@@ -329,6 +331,32 @@ public class QuestInstance implements IQuest
         }
     }
 
+	@Override
+	public boolean isUnlockable(UUID uuid)
+	{
+		// TODO: determine if we need to recursively lookup parents
+		// glease: currently we do not have whole chains mutually exclusive with each other here in gtnh,
+		// but this might be useful for more quest driven packs. the performance implication dissuade me from implementing
+		// this. should look into this later.
+		if(preRequisites.length == 0) return true;
+
+		EnumLogic questLogic = qInfo.getProperty(NativeProps.LOGIC_QUEST);
+		if(questLogic.isTrivial()) return true;
+
+		int A = 0;
+		int B = preRequisites.length;
+
+		for(DBEntry<IQuest> quest : QuestDatabase.INSTANCE.bulkLookup(getRequirements()))
+		{
+			if(quest.getValue().isComplete(uuid))
+			{
+				A++;
+			}
+		}
+
+		return questLogic.isUnlockable(A, B);
+	}
+
 	/**
 	 * Returns true if the quest has been completed at least once
 	 */
@@ -598,6 +626,13 @@ public class QuestInstance implements IQuest
             DirtyPlayerMarker.markDirty(uuid);
         }
 	}
+
+    public void getUsersWithCompletionData(Set<UUID> targetSet) {
+        synchronized (completeUsers) {
+            // Take a copy to prevent concurrent modifications to the returned Set
+            targetSet.addAll(completeUsers.keySet());
+        }
+    }
 
     @Override
     public <T> T getProperty(IPropertyType<T> prop)
